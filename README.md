@@ -73,7 +73,7 @@ Clone the repository:
 
 ```bash
 git clone https://github.com/mukeshchavan2112/distributed-api-gateway.git
-cd lightweight-api-gateway
+cd distributed-api-gateway
 ```
 
 Create and activate a virtual environment.
