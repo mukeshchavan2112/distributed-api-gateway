@@ -3,7 +3,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.main import app, filter_headers
 
 
 @pytest.fixture
@@ -116,3 +116,58 @@ def test_invalid_backend_json_returns_502(client, mock_backend):
     assert response.json() == {
         "error": "Backend returned a response that is not valid JSON."
     }
+
+
+def test_other_backend_request_error_returns_502(client, mock_backend):
+    def raise_request_error(request):
+        raise httpx.RequestError(
+            "Unexpected upstream request failure",
+            request=request,
+        )
+
+    mock_backend(raise_request_error)
+
+    response = client.get("/api/hello")
+
+    assert response.status_code == 502
+    assert response.json() == {
+        "error": "Gateway could not complete the backend request."
+    }
+
+
+def test_backend_error_status_and_json_are_preserved(client, mock_backend):
+    def return_backend_error(request):
+        return httpx.Response(
+            418,
+            json={"error": "Backend rejected the request"},
+        )
+
+    mock_backend(return_backend_error)
+
+    response = client.get("/api/hello")
+
+    assert response.status_code == 418
+    assert response.json() == {
+        "error": "Backend rejected the request"
+    }
+
+
+def test_filter_headers_removes_hop_by_hop_and_connection_named_headers():
+    headers = httpx.Headers({
+        "Connection": "keep-alive, X-Internal",
+        "Keep-Alive": "timeout=5",
+        "X-Internal": "do-not-forward",
+        "Host": "client.example",
+        "X-Request-ID": "request-123",
+    })
+
+    filtered = filter_headers(headers)
+
+    assert "connection" not in filtered
+    assert "keep-alive" not in filtered
+    assert "x-internal" not in filtered
+    assert "host" not in filtered
+    assert {
+        key.lower(): value
+        for key, value in filtered.items()
+    }["x-request-id"] == "request-123"

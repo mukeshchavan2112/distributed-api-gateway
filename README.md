@@ -182,6 +182,36 @@ The current test suite covers:
 - Backend timeout
 - Invalid backend JSON
 
+
+## Running Tests
+
+### Unit tests
+
+Unit tests verify gateway behavior without requiring the live gateway and backend services to be running.
+
+```powershell
+python -m pytest tests/test_gateway.py -v
+```
+
+### Integration tests
+
+Integration tests send real HTTP requests to the running gateway and backend services. Start Backend A on port `8001`, Backend B on port `8002`, and the gateway on port `8000` before running them.
+
+```powershell
+python -m pytest -m integration -v
+```
+
+### Run all tests
+
+With all three services running:
+
+```powershell
+python -m pytest -v
+```
+
+The integration tests are marked using `@pytest.mark.integration` in `pytest.ini`.
+
+
 ## Performance Testing
 
 The gateway was tested locally using Locust.
